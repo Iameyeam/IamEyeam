@@ -1,0 +1,1363 @@
+import { useState, useEffect, useRef } from "react";
+
+const CATS = [
+  { id:"abundance", label:"Abundance",        emoji:"✨", color:"#C8880A" },
+  { id:"health",    label:"Health & Vitality", emoji:"🌿", color:"#0FA87A" },
+  { id:"love",      label:"Love",              emoji:"🌸", color:"#C83870" },
+  { id:"career",    label:"Purpose & Career",  emoji:"🔥", color:"#D06018" },
+  { id:"growth",    label:"Personal Growth",   emoji:"🦋", color:"#5838C8" },
+  { id:"freedom",   label:"Freedom & Joy",     emoji:"🌊", color:"#0076A8" },
+];
+
+const TRUTHS = [
+  "I am enough. I am worthy. I am deserving of every good thing life has to offer — and I receive it all now.",
+  "I am successful. I am abundant. Money flows to me freely and effortlessly. I am financially free.",
+  "I am healthy. I am strong. My body is vibrant, energized, and fully alive right now.",
+  "I am loved. I am loving. I give and receive love easily and openly in every relationship.",
+  "I am confident. I walk into every room knowing my worth and owning my power completely.",
+  "I am a magnet for miracles. Good things happen to me every single day — I expect them and I receive them.",
+  "I do the work. I show up every day. I take action now and I make things happen today.",
+  "I am unstoppable. Every challenge I face makes me stronger, wiser, and more powerful.",
+  "I am the creator of my reality. My thoughts are positive, my beliefs are powerful, and my life reflects that now.",
+  "I live in abundance. My cup overflows with joy, gratitude, love, and opportunity.",
+  "I am free. I am at peace. I move through life with ease, grace, and total confidence.",
+  "I do it now. I act now. I decide now. I am a person of immediate and powerful action.",
+  "I have everything I need to succeed. The resources, the talent, the drive — it is all within me right now.",
+  "I am focused. I am clear. I know exactly where I am going and I am already on my way.",
+  "I attract the right people, the right opportunities, and the right circumstances into my life — always.",
+  "I am at my best today. I perform at my highest level. I give everything I have and it is more than enough.",
+  "I love myself completely. I honor who I am. I am proud of how far I have come and excited for where I am going.",
+  "Success is mine. It belongs to me. I have already claimed it — I am simply walking toward what is already waiting for me.",
+  "Do it now. Do it now. Do it now. I make things happen today — not tomorrow, not someday. Right now.",
+  "Where I have been does not define me. What is ahead of me is all that matters. Success is just ahead — I am moving toward it now.",
+];
+
+const PROMPTS = ["I am...","I have...","I do...","I attract...","I create...","I live...","I give...","I receive...","I own...","I lead...","I love...","I achieve..."];
+const fmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+
+const G = `
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap');
+*{box-sizing:border-box}
+body{margin:0}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:rgba(0,90,140,.2);border-radius:3px}
+@keyframes sparkle{0%,100%{opacity:.08;transform:scale(.8)}50%{opacity:.7;transform:scale(1.2)}}
+@keyframes shimmer{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes sIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes sOut{from{opacity:1}to{opacity:0;transform:translateY(-14px)}}
+@keyframes ripple{0%{transform:scale(.8);opacity:.4}100%{transform:scale(2.5);opacity:0}}
+@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+@keyframes pulse{0%,100%{opacity:.25;transform:scale(1)}50%{opacity:.55;transform:scale(1.09)}}
+@keyframes glow{0%,100%{box-shadow:0 0 16px rgba(0,119,182,.12)}50%{box-shadow:0 0 36px rgba(0,119,182,.28)}}
+@keyframes breatheIn{0%{transform:scale(1);opacity:.3}50%{transform:scale(1.18);opacity:.7}100%{transform:scale(1);opacity:.3}}
+@keyframes breatheOut{0%{transform:scale(1.18);opacity:.7}100%{transform:scale(1);opacity:.3}}
+@keyframes mantraFade{0%{opacity:0;transform:scale(.97)}15%{opacity:1;transform:scale(1)}85%{opacity:1;transform:scale(1)}100%{opacity:.3;transform:scale(.97)}}
+@keyframes ringExpand{0%{transform:scale(.85);opacity:.6}100%{transform:scale(1.35);opacity:0}}
+.pf{font-family:'Playfair Display',serif}
+.cf{font-family:'Cormorant Garamond',serif}
+.bo{transition:all .2s;cursor:pointer}.bo:hover{transform:scale(1.025);filter:brightness(1.07)}
+.gh{transition:all .2s;cursor:pointer}.gh:hover{background:rgba(255,255,255,.38)!important}
+.cd{transition:all .2s}.cd:hover{transform:translateY(-3px);box-shadow:0 10px 32px rgba(0,80,140,.15)!important}
+.tb{transition:all .2s;cursor:pointer}
+.ch{transition:all .18s;cursor:pointer}.ch:hover{transform:scale(1.06)}
+.dl{transition:color .18s;cursor:pointer}.dl:hover{color:rgba(190,30,30,.55)!important}
+textarea:focus,input:focus{outline:none!important;border-color:#009CC0!important;box-shadow:0 0 0 3px rgba(0,150,192,.14)!important}
+`;
+
+// Shared style objects
+const glass = {
+  background:"rgba(255,255,255,.58)",
+  backdropFilter:"blur(10px)",
+  border:"1px solid rgba(255,255,255,.72)",
+  boxShadow:"0 3px 16px rgba(0,80,140,.08)",
+};
+const ocean = {
+  background:"linear-gradient(135deg,#0077B6,#00B4D8)",
+  border:"none",
+  color:"#fff",
+  boxShadow:"0 8px 32px rgba(0,119,182,.3),inset 0 1px 0 rgba(255,255,255,.18)",
+};
+
+function Particles() {
+  const p = useRef(Array.from({length:50},()=>({
+    w:Math.random()*6+2, t:Math.random()*100, l:Math.random()*100,
+    d:Math.random()*5+3, de:Math.random()*8, o:Math.random()*.25+.04,
+  })));
+  return (
+    <div style={{position:"fixed",inset:0,overflow:"hidden",zIndex:0,pointerEvents:"none"}}>
+      {p.current.map((x,i) => (
+        <div key={i} style={{
+          position:"absolute",width:x.w,height:x.w,borderRadius:"50%",
+          background:`rgba(255,255,255,${x.o})`,
+          top:x.t+"%",left:x.l+"%",filter:"blur(1px)",
+          animation:`sparkle ${x.d}s ease-in-out infinite`,
+          animationDelay:x.de+"s",
+        }}/>
+      ))}
+    </div>
+  );
+}
+
+function Wave() {
+  return (
+    <svg viewBox="0 0 1200 48" preserveAspectRatio="none" style={{display:"block",width:"100%",height:32}}>
+      <path d="M0,22 C200,44 420,4 600,22 C780,40 1000,4 1200,22 L1200,48 L0,48 Z" fill="rgba(255,255,255,.28)"/>
+      <path d="M0,32 C160,16 380,44 600,30 C820,16 1040,40 1200,30 L1200,48 L0,48 Z" fill="rgba(255,255,255,.15)"/>
+    </svg>
+  );
+}
+
+function Session({items, secs, label, onClose, onDone}) {
+  const [t, setT]       = useState(secs);
+  const [idx, setIdx]   = useState(0);
+  const [ph, setPh]     = useState("in");
+  const [paused, setP]  = useState(false);
+  const [done, setD]    = useState(false);
+  const pr              = useRef(false);
+  const cycle           = secs <= 180 ? 9 : 13;
+
+  useEffect(() => {
+    if (done) return;
+    const iv = setInterval(() => {
+      if (pr.current) return;
+      setT(s => {
+        if (s <= 1) { clearInterval(iv); setD(true); onDone && onDone(); return 0; }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [done]);
+
+  useEffect(() => {
+    if (done || !items.length) return;
+    const iv = setInterval(() => {
+      if (pr.current) return;
+      setPh("out");
+      setTimeout(() => { setIdx(i => (i+1) % items.length); setPh("in"); }, 520);
+    }, cycle * 1000);
+    return () => clearInterval(iv);
+  }, [done, items.length, cycle]);
+
+  const toggle = () => { pr.current = !pr.current; setP(p => !p); };
+  const R = 52, C = 2 * Math.PI * R, prog = 1 - t / secs;
+  const isQuick = secs <= 180;
+
+  if (done) return (
+    <div style={{position:"fixed",inset:0,zIndex:1000,background:"linear-gradient(160deg,#ADE8F4,#48CAE4,#0096C7)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"36px 24px",textAlign:"center"}}>
+      <div style={{fontSize:66,animation:"pop .7s cubic-bezier(.34,1.56,.64,1) forwards",marginBottom:18}}>🌊</div>
+      <h2 className="pf" style={{fontSize:"clamp(22px,5vw,40px)",color:"#fff",fontWeight:400,fontStyle:"italic",margin:"0 0 12px",textShadow:"0 2px 18px rgba(0,50,100,.3)"}}>
+        {isQuick ? "Beliefs Reinforced" : "10 Minutes Complete"}
+      </h2>
+      <p className="cf" style={{fontSize:17,color:"rgba(255,255,255,.78)",margin:"0 0 28px",lineHeight:1.85,maxWidth:400}}>
+        {isQuick
+          ? "Those words are now alive in you. Carry them into the rest of your day."
+          : "You showed up for yourself. Those beliefs are planting deep roots."}
+      </p>
+      <button className="gh" onClick={onClose} style={{padding:"12px 36px",background:"rgba(255,255,255,.2)",border:"2px solid rgba(255,255,255,.55)",borderRadius:50,color:"#fff",fontFamily:"inherit",fontSize:15,letterSpacing:".12em",textTransform:"uppercase",backdropFilter:"blur(8px)"}}>
+        Return to My Practice
+      </button>
+    </div>
+  );
+
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:1000,background:"linear-gradient(160deg,#023E8A 0%,#0077B6 38%,#0096C7 68%,#48CAE4 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+      {[0,1,2].map(i => (
+        <div key={i} style={{position:"absolute",width:250,height:250,borderRadius:"50%",border:"1px solid rgba(255,255,255,.16)",animation:`ripple 5s ease-out infinite`,animationDelay:i*1.6+"s",pointerEvents:"none"}}/>
+      ))}
+      <div style={{position:"absolute",bottom:0,left:0,right:0,pointerEvents:"none"}}>
+        <svg viewBox="0 0 1200 60" preserveAspectRatio="none" style={{width:"100%",height:44,display:"block"}}>
+          <path d="M0,32 C300,58 600,8 900,35 C1060,50 1160,26 1200,32 L1200,60 L0,60 Z" fill="rgba(255,255,255,.1)"/>
+        </svg>
+      </div>
+      <div style={{position:"absolute",top:24,textAlign:"center",padding:"0 20px"}}>
+        <span className="cf" style={{fontSize:11,letterSpacing:".28em",color:"rgba(255,255,255,.45)",textTransform:"uppercase"}}>{label}</span>
+      </div>
+      <div style={{position:"relative",width:120,height:120,marginBottom:28}}>
+        <svg width="120" height="120" style={{transform:"rotate(-90deg)"}}>
+          <circle cx="60" cy="60" r={R} fill="none" stroke="rgba(255,255,255,.14)" strokeWidth="5"/>
+          <circle cx="60" cy="60" r={R} fill="none" stroke="rgba(255,255,255,.86)" strokeWidth="5"
+            strokeDasharray={C} strokeDashoffset={C*(1-prog)} strokeLinecap="round"
+            style={{transition:"stroke-dashoffset 1s linear"}}/>
+        </svg>
+        <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+          <span className="pf" style={{fontSize:24,color:"#fff",lineHeight:1}}>{fmt(t)}</span>
+          <span className="cf" style={{fontSize:9,color:"rgba(255,255,255,.45)",letterSpacing:".18em",textTransform:"uppercase",marginTop:2}}>left</span>
+        </div>
+      </div>
+      <div style={{maxWidth:620,textAlign:"center",padding:"0 26px",minHeight:144,display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <p className="pf" style={{fontSize:"clamp(18px,3.5vw,33px)",lineHeight:1.65,color:"#fff",fontWeight:400,fontStyle:"italic",textShadow:"0 2px 26px rgba(0,50,100,.3)",margin:0,letterSpacing:".02em",animation:ph==="out"?"sOut .52s forwards":"sIn .7s forwards"}}>
+          {items[idx] || ""}
+        </p>
+      </div>
+      <div style={{display:"flex",gap:6,marginTop:22,flexWrap:"wrap",justifyContent:"center",maxWidth:260}}>
+        {items.map((_,i) => (
+          <div key={i} style={{width:i===idx?16:5,height:5,borderRadius:3,background:i===idx?"rgba(255,255,255,.88)":"rgba(255,255,255,.26)",transition:"all .4s"}}/>
+        ))}
+      </div>
+      <div style={{display:"flex",gap:11,marginTop:28}}>
+        <button className="gh cf" onClick={toggle} style={{padding:"10px 24px",background:"rgba(255,255,255,.18)",border:"1.5px solid rgba(255,255,255,.48)",borderRadius:30,color:"#fff",fontSize:14,letterSpacing:".1em",textTransform:"uppercase",backdropFilter:"blur(6px)"}}>
+          {paused ? "Resume" : "Pause"}
+        </button>
+        <button className="gh cf" onClick={onClose} style={{padding:"10px 24px",background:"transparent",border:"1.5px solid rgba(255,255,255,.26)",borderRadius:30,color:"rgba(255,255,255,.58)",fontSize:14,letterSpacing:".1em",textTransform:"uppercase"}}>
+          End
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── MANTRA PICKER ── choose one affirmation before meditating */
+function MantraPicker({ allItems, onStart, onClose }) {
+  const [chosen, setChosen] = useState(null);
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:1000,background:"linear-gradient(160deg,#012030 0%,#023E8A 50%,#0077B6 100%)",display:"flex",flexDirection:"column",alignItems:"center",overflowY:"auto",padding:"40px 20px 60px"}}>
+      <div style={{position:"absolute",top:0,left:0,right:0,pointerEvents:"none"}}>
+        <svg viewBox="0 0 1200 120" preserveAspectRatio="none" style={{width:"100%",height:80,display:"block",transform:"scaleY(-1)"}}>
+          <path d="M0,40 C300,75 600,8 900,42 C1060,58 1160,30 1200,38 L1200,0 L0,0 Z" fill="rgba(255,255,255,.06)"/>
+        </svg>
+      </div>
+      <p className="cf" style={{fontSize:10,letterSpacing:".4em",color:"rgba(144,224,239,.7)",textTransform:"uppercase",margin:"0 0 8px"}}>10-Minute Mantra Meditation</p>
+      <h2 className="pf" style={{fontSize:"clamp(22px,5vw,36px)",fontWeight:400,fontStyle:"italic",color:"#fff",margin:"0 0 8px",textAlign:"center",textShadow:"0 2px 20px rgba(0,50,100,.4)"}}>Choose Your Mantra</h2>
+      <p className="cf" style={{fontSize:15,color:"rgba(255,255,255,.45)",margin:"0 0 28px",textAlign:"center",lineHeight:1.7,maxWidth:420}}>
+        Pick one affirmation. This becomes your single point of focus for the entire 10 minutes.
+      </p>
+      <div style={{width:"100%",maxWidth:580,display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
+        {allItems.map((item,i) => {
+          const text = typeof item === "string" ? item : item.text;
+          const isChosen = chosen === text;
+          return (
+            <div key={i} onClick={() => setChosen(text)} style={{
+              background: isChosen ? "rgba(0,180,216,.2)" : "rgba(255,255,255,.07)",
+              border: `1.5px solid ${isChosen ? "rgba(0,180,216,.7)" : "rgba(255,255,255,.12)"}`,
+              borderRadius: 14, padding:"14px 18px", cursor:"pointer",
+              transition:"all .2s",
+              boxShadow: isChosen ? "0 0 24px rgba(0,180,216,.2)" : "none",
+            }}>
+              <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+                <div style={{width:20,height:20,borderRadius:"50%",border:`2px solid ${isChosen?"#00B4D8":"rgba(255,255,255,.25)"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2,background:isChosen?"#00B4D8":"transparent",transition:"all .2s"}}>
+                  {isChosen && <div style={{width:8,height:8,borderRadius:"50%",background:"#fff"}}/>}
+                </div>
+                <p className="pf" style={{fontSize:15,fontStyle:"italic",color:isChosen?"#fff":"rgba(255,255,255,.7)",lineHeight:1.6,margin:0}}>{text}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{display:"flex",gap:10,width:"100%",maxWidth:580,position:"sticky",bottom:0,paddingTop:12,background:"linear-gradient(to top,rgba(0,40,80,1) 60%,transparent)"}}>
+        <button onClick={onClose} className="gh cf" style={{flex:1,padding:"13px",background:"rgba(255,255,255,.1)",border:"1.5px solid rgba(255,255,255,.2)",borderRadius:12,color:"rgba(255,255,255,.55)",fontSize:14,letterSpacing:".08em",textTransform:"uppercase"}}>Cancel</button>
+        <button onClick={() => chosen && onStart(chosen)} className="cf" style={{flex:2,padding:"13px",background:chosen?"linear-gradient(135deg,#0077B6,#00B4D8)":"rgba(255,255,255,.1)",border:"none",borderRadius:12,color:chosen?"#fff":"rgba(255,255,255,.3)",fontSize:15,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",cursor:chosen?"pointer":"default",transition:"all .3s",boxShadow:chosen?"0 6px 24px rgba(0,119,182,.4)":"none"}}>
+          {chosen ? "Begin Meditation" : "Select a Mantra"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── MANTRA MEDITATION ── 10 min single-affirmation loop */
+function MantraMode({ mantra, onClose, onDone }) {
+  const [t, setT]          = useState(600);
+  const [phase, setPhase]  = useState("in"); // in | hold | out
+  const [rep, setRep]      = useState(0);
+  const [paused, setP]     = useState(false);
+  const [done, setD]       = useState(false);
+  const pr                 = useRef(false);
+  const BREATH_CYCLE       = 8; // seconds per mantra pulse
+
+  // countdown
+  useEffect(() => {
+    if (done) return;
+    const iv = setInterval(() => {
+      if (pr.current) return;
+      setT(s => { if (s <= 1) { clearInterval(iv); setD(true); onDone && onDone(); return 0; } return s - 1; });
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [done]);
+
+  // mantra breath cycle
+  useEffect(() => {
+    if (done) return;
+    const iv = setInterval(() => {
+      if (pr.current) return;
+      setPhase("out");
+      setTimeout(() => { setPhase("in"); setRep(r => r + 1); }, 1200);
+    }, BREATH_CYCLE * 1000);
+    return () => clearInterval(iv);
+  }, [done]);
+
+  const toggle = () => { pr.current = !pr.current; setP(p => !p); };
+  const R = 52, C = 2 * Math.PI * R, prog = 1 - t / 600;
+
+  if (done) return (
+    <div style={{position:"fixed",inset:0,zIndex:1001,background:"linear-gradient(160deg,#ADE8F4,#48CAE4,#0096C7)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 24px",textAlign:"center"}}>
+      <div style={{fontSize:68,animation:"pop .7s cubic-bezier(.34,1.56,.64,1) forwards",marginBottom:20}}>🧘</div>
+      <h2 className="pf" style={{fontSize:"clamp(22px,5vw,40px)",color:"#fff",fontWeight:400,fontStyle:"italic",margin:"0 0 10px",textShadow:"0 2px 18px rgba(0,50,100,.3)"}}>Meditation Complete</h2>
+      <p className="cf" style={{fontSize:16,color:"rgba(255,255,255,.78)",margin:"0 0 8px",lineHeight:1.8,maxWidth:400}}>
+        You repeated your mantra <strong style={{color:"#fff"}}>{rep} times</strong> in 10 minutes.
+      </p>
+      <p className="pf" style={{fontSize:15,fontStyle:"italic",color:"rgba(255,255,255,.6)",margin:"0 0 28px",maxWidth:360,lineHeight:1.7}}>
+        That belief is now woven deeper into who you are.
+      </p>
+      <button className="gh cf" onClick={onClose} style={{padding:"12px 36px",background:"rgba(255,255,255,.2)",border:"2px solid rgba(255,255,255,.55)",borderRadius:50,color:"#fff",fontSize:15,letterSpacing:".12em",textTransform:"uppercase",backdropFilter:"blur(8px)"}}>
+        Return to My Practice
+      </button>
+    </div>
+  );
+
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:1001,background:"linear-gradient(160deg,#010d1f 0%,#012a4a 45%,#023E8A 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+      {/* Expanding breath rings */}
+      {[0,1,2,3].map(i => (
+        <div key={i} style={{position:"absolute",width:220,height:220,borderRadius:"50%",border:"1px solid rgba(144,224,239,.25)",animation:`ringExpand ${BREATH_CYCLE}s ease-out infinite`,animationDelay:i*(BREATH_CYCLE/4)+"s",pointerEvents:"none"}}/>
+      ))}
+      {/* Central glow orb - breathes with the mantra */}
+      <div style={{position:"absolute",width:280,height:280,borderRadius:"50%",background:"radial-gradient(circle,rgba(0,180,216,.18) 0%,transparent 70%)",animation:`breatheIn ${BREATH_CYCLE}s ease-in-out infinite`,pointerEvents:"none"}}/>
+
+      <div style={{position:"absolute",bottom:0,left:0,right:0,pointerEvents:"none"}}>
+        <svg viewBox="0 0 1200 60" preserveAspectRatio="none" style={{width:"100%",height:44,display:"block"}}>
+          <path d="M0,32 C300,58 600,8 900,35 C1060,50 1160,26 1200,32 L1200,60 L0,60 Z" fill="rgba(255,255,255,.06)"/>
+        </svg>
+      </div>
+
+      {/* Session label */}
+      <div style={{position:"absolute",top:26,textAlign:"center"}}>
+        <p className="cf" style={{fontSize:10,letterSpacing:".3em",color:"rgba(144,224,239,.5)",textTransform:"uppercase",margin:0}}>Mantra Meditation</p>
+      </div>
+
+      {/* Timer ring */}
+      <div style={{position:"relative",width:120,height:120,marginBottom:36}}>
+        <svg width="120" height="120" style={{transform:"rotate(-90deg)"}}>
+          <circle cx="60" cy="60" r={R} fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="4"/>
+          <circle cx="60" cy="60" r={R} fill="none" stroke="rgba(144,224,239,.75)" strokeWidth="4"
+            strokeDasharray={C} strokeDashoffset={C*(1-prog)} strokeLinecap="round"
+            style={{transition:"stroke-dashoffset 1s linear"}}/>
+        </svg>
+        <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+          <span className="pf" style={{fontSize:24,color:"#fff",lineHeight:1}}>{fmt(t)}</span>
+          <span className="cf" style={{fontSize:8,color:"rgba(255,255,255,.4)",letterSpacing:".18em",textTransform:"uppercase",marginTop:2}}>left</span>
+        </div>
+      </div>
+
+      {/* Mantra */}
+      <div style={{maxWidth:580,textAlign:"center",padding:"0 32px"}}>
+        <p className="cf" style={{fontSize:11,letterSpacing:".35em",color:"rgba(144,224,239,.55)",textTransform:"uppercase",margin:"0 0 18px"}}>
+          Your Mantra &middot; Repeat {rep} times
+        </p>
+        <p className="pf" style={{
+          fontSize:"clamp(20px,4vw,38px)",
+          lineHeight:1.65, color:"#fff", fontWeight:400, fontStyle:"italic",
+          textShadow:"0 0 40px rgba(0,180,216,.4), 0 2px 20px rgba(0,50,100,.5)",
+          margin:0, letterSpacing:".02em",
+          animation: phase==="out" ? "mantraFade 1.2s ease forwards" : "sIn .8s ease forwards",
+        }}>
+          {mantra}
+        </p>
+      </div>
+
+      {/* Breath guide */}
+      <div style={{marginTop:32,textAlign:"center"}}>
+        <div style={{width:48,height:48,borderRadius:"50%",border:"1.5px solid rgba(144,224,239,.4)",margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"center",animation:`breatheIn ${BREATH_CYCLE}s ease-in-out infinite`}}>
+          <div style={{width:16,height:16,borderRadius:"50%",background:"rgba(144,224,239,.6)",animation:`breatheIn ${BREATH_CYCLE}s ease-in-out infinite`}}/>
+        </div>
+        <p className="cf" style={{fontSize:11,color:"rgba(255,255,255,.28)",marginTop:8,letterSpacing:".15em"}}>
+          {paused ? "PAUSED" : "BREATHE WITH THE LIGHT"}
+        </p>
+      </div>
+
+      {/* Controls */}
+      <div style={{display:"flex",gap:11,marginTop:28}}>
+        <button className="gh cf" onClick={toggle} style={{padding:"10px 24px",background:"rgba(255,255,255,.1)",border:"1.5px solid rgba(255,255,255,.3)",borderRadius:30,color:"#fff",fontSize:14,letterSpacing:".1em",textTransform:"uppercase",backdropFilter:"blur(6px)"}}>
+          {paused ? "Resume" : "Pause"}
+        </button>
+        <button className="gh cf" onClick={onClose} style={{padding:"10px 24px",background:"transparent",border:"1.5px solid rgba(255,255,255,.18)",borderRadius:30,color:"rgba(255,255,255,.45)",fontSize:14,letterSpacing:".1em",textTransform:"uppercase"}}>
+          End
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Visualize({items, onClose}) {
+  const [idx, setIdx] = useState(0);
+  const [ph, setPh]   = useState("in");
+  useEffect(() => {
+    const t = setInterval(() => {
+      setPh("out");
+      setTimeout(() => { setIdx(i => (i+1) % items.length); setPh("in"); }, 540);
+    }, 7000);
+    return () => clearInterval(t);
+  }, [items.length]);
+  const cur = items[idx];
+  const cat = CATS.find(c => c.id === cur?.category) || CATS[5];
+  return (
+    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:1000,cursor:"pointer",background:"linear-gradient(160deg,#023E8A,#0077B6,#0096C7,#48CAE4)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+      <div style={{position:"absolute",width:350,height:350,borderRadius:"50%",border:"1px solid rgba(255,255,255,.2)",animation:"pulse 6s ease-in-out infinite",pointerEvents:"none"}}/>
+      <div style={{position:"absolute",width:460,height:460,borderRadius:"50%",border:"1px solid rgba(255,255,255,.1)",animation:"pulse 6s ease-in-out infinite",animationDelay:"1s",pointerEvents:"none"}}/>
+      <div style={{animation:ph==="out"?"sOut .54s forwards":"sIn .75s forwards",textAlign:"center",padding:"0 40px",maxWidth:640}}>
+        <div style={{fontSize:48,marginBottom:18,filter:"drop-shadow(0 4px 16px rgba(255,255,255,.4))"}}>{cat.emoji}</div>
+        <p className="pf" style={{fontSize:"clamp(20px,3.8vw,36px)",lineHeight:1.6,color:"#fff",fontWeight:400,fontStyle:"italic",textShadow:"0 2px 26px rgba(0,50,100,.35)",margin:0,letterSpacing:".02em"}}>{cur?.text}</p>
+        <p className="cf" style={{fontSize:12,color:"rgba(255,255,255,.52)",marginTop:16,letterSpacing:".2em",textTransform:"uppercase"}}>{cat.label}</p>
+      </div>
+      <div style={{display:"flex",gap:7,position:"absolute",bottom:50}}>
+        {items.map((_,i) => <div key={i} style={{width:i===idx?18:5,height:5,borderRadius:3,background:i===idx?"rgba(255,255,255,.88)":"rgba(255,255,255,.26)",transition:"all .4s"}}/>)}
+      </div>
+      <p className="cf" style={{position:"absolute",bottom:24,color:"rgba(255,255,255,.28)",fontSize:11,letterSpacing:".14em"}}>TAP TO CLOSE</p>
+    </div>
+  );
+}
+
+
+/* ── JOURNAL SESSION ── pick affirmations, write each 5x, say as you write */
+function JournalSession({allItems, onClose, onDone}) {
+  const STEPS = 3; // pick 3 affirmations
+  const REPS  = 5; // write each 5 times
+  const SECS  = 600;
+
+  const [phase, setPhase]   = useState("pick");   // pick | write | done
+  const [picked, setPicked] = useState([]);
+  const [aIdx, setAIdx]     = useState(0);        // which affirmation
+  const [rIdx, setRIdx]     = useState(0);        // which repetition
+  const [typed, setTyped]   = useState("");
+  const [lines, setLines]   = useState([]);        // completed lines
+  const [t, setT]           = useState(SECS);
+  const [paused, setP]      = useState(false);
+  const pr                  = useRef(false);
+  const taRef               = useRef(null);
+
+  // Timer
+  useEffect(() => {
+    if (phase !== "write") return;
+    const iv = setInterval(() => {
+      if (pr.current) return;
+      setT(s => { if(s<=1){clearInterval(iv);return 0;} return s-1; });
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [phase]);
+
+  const togglePick = (txt) => {
+    if (picked.includes(txt)) { setPicked(p => p.filter(x=>x!==txt)); return; }
+    if (picked.length < STEPS) setPicked(p => [...p, txt]);
+  };
+
+  const startWrite = () => {
+    if (picked.length === 0) return;
+    setPhase("write"); setAIdx(0); setRIdx(0); setTyped(""); setLines([]);
+  };
+
+  const handleKey = (e) => {
+    if (e.key === "Enter" && typed.trim()) {
+      e.preventDefault();
+      const current = picked[aIdx];
+      const match = typed.trim().toLowerCase().includes(current.toLowerCase().slice(0,10));
+      const newLines = [...lines, {text:typed.trim(), aff:current, rep:rIdx, matched:true}];
+      setLines(newLines);
+      setTyped("");
+      const nextRep = rIdx + 1;
+      if (nextRep >= REPS) {
+        const nextAff = aIdx + 1;
+        if (nextAff >= picked.length) {
+          setPhase("done");
+          onDone && onDone();
+        } else { setAIdx(nextAff); setRIdx(0); }
+      } else { setRIdx(nextRep); }
+      setTimeout(() => taRef.current?.focus(), 50);
+    }
+  };
+
+  const R=48, C=2*Math.PI*R, prog=1-t/SECS;
+  const currentAff = picked[aIdx] || "";
+
+  if (phase === "done") return (
+    <div style={{position:"fixed",inset:0,zIndex:1001,background:"linear-gradient(160deg,#ADE8F4,#48CAE4,#0096C7)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"36px 24px",textAlign:"center"}}>
+      <div style={{fontSize:64,marginBottom:16,animation:"pop .7s cubic-bezier(.34,1.56,.64,1) forwards"}}>📓</div>
+      <h2 className="pf" style={{fontSize:"clamp(22px,5vw,38px)",color:"#fff",fontWeight:400,fontStyle:"italic",margin:"0 0 10px",textShadow:"0 2px 18px rgba(0,50,100,.3)"}}>Journal Complete</h2>
+      <p className="cf" style={{fontSize:16,color:"rgba(255,255,255,.8)",margin:"0 0 6px",lineHeight:1.8,maxWidth:380}}>
+        You wrote {lines.length} lines today.
+      </p>
+      <p className="pf" style={{fontSize:15,fontStyle:"italic",color:"rgba(255,255,255,.65)",margin:"0 0 28px",maxWidth:360,lineHeight:1.7}}>
+        Those words are now deeper in you than before. The pen makes it real.
+      </p>
+      <button className="gh cf" onClick={onClose} style={{padding:"12px 36px",background:"rgba(255,255,255,.2)",border:"2px solid rgba(255,255,255,.55)",borderRadius:50,color:"#fff",fontSize:15,letterSpacing:".12em",textTransform:"uppercase",backdropFilter:"blur(8px)"}}>
+        Return to My Practice
+      </button>
+    </div>
+  );
+
+  if (phase === "pick") return (
+    <div style={{position:"fixed",inset:0,zIndex:1001,background:"linear-gradient(160deg,#012030,#023E8A,#0077B6)",display:"flex",flexDirection:"column",alignItems:"center",overflowY:"auto",padding:"36px 20px 60px"}}>
+      <p className="cf" style={{fontSize:10,letterSpacing:".38em",color:"rgba(144,224,239,.7)",textTransform:"uppercase",margin:"0 0 8px"}}>10-Minute Journal Session</p>
+      <h2 className="pf" style={{fontSize:"clamp(20px,5vw,34px)",fontWeight:400,fontStyle:"italic",color:"#fff",margin:"0 0 8px",textAlign:"center"}}>Choose Your Affirmations</h2>
+      <p className="cf" style={{fontSize:14,color:"rgba(255,255,255,.45)",margin:"0 0 24px",textAlign:"center",lineHeight:1.7,maxWidth:420}}>
+        Pick up to 3. You will write each one 5 times — speaking it aloud as your pen moves. Let each word land.
+      </p>
+      <div style={{width:"100%",maxWidth:560,display:"flex",flexDirection:"column",gap:9,marginBottom:24}}>
+        {allItems.map((item,i) => {
+          const txt = typeof item === "string" ? item : item.text;
+          const sel = picked.includes(txt);
+          return (
+            <div key={i} onClick={() => togglePick(txt)} style={{background:sel?"rgba(0,180,216,.22)":"rgba(255,255,255,.07)",border:`1.5px solid ${sel?"rgba(0,180,216,.7)":"rgba(255,255,255,.12)"}`,borderRadius:13,padding:"13px 16px",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"flex-start",gap:10,boxShadow:sel?"0 0 20px rgba(0,180,216,.2)":"none"}}>
+              <div style={{width:20,height:20,borderRadius:"50%",border:`2px solid ${sel?"#00B4D8":"rgba(255,255,255,.25)"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2,background:sel?"#00B4D8":"transparent",transition:"all .2s"}}>
+                {sel && <div style={{width:8,height:8,borderRadius:"50%",background:"#fff"}}/>}
+              </div>
+              <p className="pf" style={{fontSize:14,fontStyle:"italic",color:sel?"#fff":"rgba(255,255,255,.65)",lineHeight:1.6,margin:0}}>{txt}</p>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{display:"flex",gap:10,width:"100%",maxWidth:560,position:"sticky",bottom:0,paddingTop:12,background:"linear-gradient(to top,rgba(0,40,80,1) 60%,transparent)"}}>
+        <button onClick={onClose} className="gh cf" style={{flex:1,padding:"12px",background:"rgba(255,255,255,.1)",border:"1.5px solid rgba(255,255,255,.2)",borderRadius:11,color:"rgba(255,255,255,.55)",fontSize:14,letterSpacing:".08em",textTransform:"uppercase"}}>Cancel</button>
+        <button onClick={startWrite} className="cf" style={{flex:2,padding:"12px",background:picked.length?"linear-gradient(135deg,#0077B6,#00B4D8)":"rgba(255,255,255,.1)",border:"none",borderRadius:11,color:picked.length?"#fff":"rgba(255,255,255,.3)",fontSize:15,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",cursor:picked.length?"pointer":"default",transition:"all .3s",boxShadow:picked.length?"0 6px 24px rgba(0,119,182,.4)":"none"}}>
+          {picked.length ? `Begin — ${picked.length} selected` : "Select at least 1"}
+        </button>
+      </div>
+    </div>
+  );
+
+  // WRITE PHASE
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:1001,background:"linear-gradient(160deg,#023E8A 0%,#0077B6 40%,#0096C7 70%,#48CAE4 100%)",display:"flex",flexDirection:"column",alignItems:"center",padding:"28px 20px 24px",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:18,left:"50%",transform:"translateX(-50%)",display:"flex",alignItems:"center",gap:12}}>
+        <div style={{position:"relative",width:52,height:52}}>
+          <svg width="52" height="52" style={{transform:"rotate(-90deg)"}}>
+            <circle cx="26" cy="26" r={R} fill="none" stroke="rgba(255,255,255,.15)" strokeWidth="3"/>
+            <circle cx="26" cy="26" r={R} fill="none" stroke="rgba(255,255,255,.8)" strokeWidth="3" strokeDasharray={C} strokeDashoffset={C*(1-prog)} strokeLinecap="round" style={{transition:"stroke-dashoffset 1s linear"}}/>
+          </svg>
+          <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <span className="pf" style={{fontSize:10,color:"#fff"}}>{Math.floor(t/60)}:{String(t%60).padStart(2,"0")}</span>
+          </div>
+        </div>
+        <div>
+          <p className="cf" style={{fontSize:9,letterSpacing:".25em",color:"rgba(255,255,255,.5)",textTransform:"uppercase",margin:0}}>Journal Session</p>
+          <p className="cf" style={{fontSize:12,color:"rgba(255,255,255,.7)",margin:0}}>Affirmation {aIdx+1} of {picked.length} &middot; Rep {rIdx+1} of {REPS}</p>
+        </div>
+      </div>
+
+      {/* Progress dots for affirmations */}
+      <div style={{display:"flex",gap:7,marginTop:88,marginBottom:16}}>
+        {picked.map((_,i) => <div key={i} style={{width:i===aIdx?22:8,height:8,borderRadius:4,background:i<aIdx?"rgba(255,255,255,.9)":i===aIdx?"rgba(255,255,255,.9)":"rgba(255,255,255,.25)",transition:"all .4s"}}/>)}
+      </div>
+
+      {/* Current affirmation to copy */}
+      <div style={{width:"100%",maxWidth:540,background:"rgba(0,0,0,.25)",borderRadius:16,padding:"16px 20px",marginBottom:14,backdropFilter:"blur(6px)"}}>
+        <p className="cf" style={{fontSize:9,letterSpacing:".25em",color:"rgba(255,255,255,.5)",textTransform:"uppercase",margin:"0 0 8px"}}>Write this — say it as you write</p>
+        <p className="pf" style={{fontSize:"clamp(14px,3vw,20px)",fontStyle:"italic",color:"#fff",lineHeight:1.65,margin:0,textShadow:"0 2px 12px rgba(0,50,100,.4)"}}>{currentAff}</p>
+      </div>
+
+      {/* Repetition dots */}
+      <div style={{display:"flex",gap:6,marginBottom:14}}>
+        {Array.from({length:REPS}).map((_,i) => <div key={i} style={{width:10,height:10,borderRadius:"50%",background:i<rIdx?"rgba(255,255,255,.9)":i===rIdx?"rgba(255,255,255,.9)":"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.4)",transition:"all .3s"}}/>)}
+      </div>
+
+      {/* Written lines */}
+      <div style={{width:"100%",maxWidth:540,flex:1,overflowY:"auto",marginBottom:12}}>
+        {lines.filter(l=>l.aff===currentAff).map((l,i) => (
+          <p key={i} className="pf" style={{fontSize:15,fontStyle:"italic",color:"rgba(255,255,255,.7)",lineHeight:1.7,margin:"0 0 4px",paddingLeft:8,borderLeft:"2px solid rgba(255,255,255,.3)"}}>{l.text}</p>
+        ))}
+      </div>
+
+      {/* Input */}
+      <div style={{width:"100%",maxWidth:540}}>
+        <textarea
+          ref={taRef}
+          value={typed}
+          onChange={e=>setTyped(e.target.value)}
+          onKeyDown={handleKey}
+          placeholder="Write the affirmation here, then press Enter..."
+          rows={2}
+          autoFocus
+          style={{width:"100%",background:"rgba(255,255,255,.15)",border:"1.5px solid rgba(255,255,255,.35)",borderRadius:12,padding:"12px 14px",color:"#fff",fontSize:16,fontFamily:"'Playfair Display',serif",fontStyle:"italic",lineHeight:1.6,resize:"none",backdropFilter:"blur(6px)"}}
+        />
+        <div style={{display:"flex",gap:10,marginTop:8}}>
+          <button onClick={()=>{pr.current=!pr.current;setP(p=>!p);}} className="gh cf" style={{flex:1,padding:"9px",background:"rgba(255,255,255,.15)",border:"1.5px solid rgba(255,255,255,.35)",borderRadius:9,color:"#fff",fontSize:13,letterSpacing:".08em",textTransform:"uppercase",backdropFilter:"blur(6px)"}}>
+            {paused?"Resume":"Pause"}
+          </button>
+          <button onClick={onClose} className="gh cf" style={{padding:"9px 18px",background:"transparent",border:"1.5px solid rgba(255,255,255,.2)",borderRadius:9,color:"rgba(255,255,255,.5)",fontSize:13,letterSpacing:".08em",textTransform:"uppercase"}}>
+            End
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [manifests, setM]  = useState([]);
+  const [beliefs, setB]    = useState(TRUTHS);
+  const [view, setV]       = useState("home");
+  const [modal, setMd]     = useState(null);
+  const [mantra, setMantra]= useState("");
+  const [newTxt, setNT]    = useState("");
+  const [newCat, setNC]    = useState("freedom");
+  const [newBel, setNB]    = useState("");
+  const [filter, setF]     = useState("all");
+  const [pIdx, setPI]      = useState(0);
+  const [flash, setFL]     = useState("");
+  const [sess, setSess]    = useState(0);
+  const [editMId, setEMId] = useState(null);
+  const [editMTxt, setEMT] = useState("");
+  const [editBIdx, setEBI] = useState(null);
+  const [editBTxt, setEBT] = useState("");
+  const [journalEntries, setJE] = useState([]);
+  const [journalCount, setJC]   = useState(0);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const m = await window.storage.get("M"); if (m?.value) setM(JSON.parse(m.value));
+        const b = await window.storage.get("B"); if (b?.value) setB(JSON.parse(b.value));
+        const s = await window.storage.get("S"); if (s?.value) setSess(parseInt(s.value));
+        const je = await window.storage.get("JE"); if (je?.value) setJE(JSON.parse(je.value));
+        const jc = await window.storage.get("JC"); if (jc?.value) setJC(parseInt(jc.value));
+      } catch(e) {}
+    })();
+  }, []);
+
+  useEffect(() => {
+    const t = setInterval(() => setPI(i => (i+1) % PROMPTS.length), 2700);
+    return () => clearInterval(t);
+  }, []);
+
+  const saveM = async l => { try { await window.storage.set("M", JSON.stringify(l)); } catch(e) {} };
+  const saveB = async l => { try { await window.storage.set("B", JSON.stringify(l)); } catch(e) {} };
+
+  const addM = () => {
+    if (!newTxt.trim()) return;
+    const u = [{id:Date.now(), text:newTxt.trim(), category:newCat}, ...manifests];
+    setM(u); saveM(u); setNT(""); setFL("m"); setTimeout(() => setFL(""), 2000);
+    setV("home");
+  };
+  const addB = () => {
+    if (!newBel.trim()) return;
+    const u = [...beliefs, newBel.trim()];
+    setB(u); saveB(u); setNB(""); setFL("b"); setTimeout(() => setFL(""), 2000);
+  };
+  const delM = id => { const u = manifests.filter(x => x.id !== id); setM(u); saveM(u); };
+  const delB = i  => { const u = beliefs.filter((_,j) => j !== i);   setB(u); saveB(u); };
+
+  const saveEditM = (id) => {
+    if (!editMTxt.trim()) return;
+    const u = manifests.map(m => m.id === id ? {...m, text: editMTxt.trim()} : m);
+    setM(u); saveM(u); setEMId(null); setEMT("");
+  };
+  const saveEditB = (i) => {
+    if (!editBTxt.trim()) return;
+    const u = beliefs.map((b,j) => j === i ? editBTxt.trim() : b);
+    setB(u); saveB(u); setEBI(null); setEBT("");
+  };
+  const onDone = async () => {
+    const n = sess + 1; setSess(n);
+    try { await window.storage.set("S", String(n)); } catch(e) {}
+  };
+
+  const filtered     = filter === "all" ? manifests : manifests.filter(m => m.category === filter);
+  const sessionItems = [...beliefs, ...manifests.map(m => m.text)];
+  const sessSecs     = modal === "s10" ? 600 : modal === "s3" ? 180 : 120;
+  const sessLabel    = modal === "s10" ? "10-Minute Deep Practice" : modal === "s3" ? "3-Minute Reinforcement" : "2-Minute Quick Boost";
+  const vizItems     = filtered.length ? filtered : manifests.length ? manifests : TRUTHS.map((t,i) => ({text:t,category:"freedom",id:i}));
+
+  return (
+    <div className="cf" style={{minHeight:"100vh",background:"linear-gradient(175deg,#DFFBFF 0%,#B0EEF8 22%,#76DCED 52%,#38C6DF 78%,#08BCD6 100%)",color:"#012535",position:"relative"}}>
+      <style>{G}</style>
+      <Particles/>
+
+      {(modal==="s10"||modal==="s2"||modal==="s3") && (
+        <Session items={sessionItems.length ? sessionItems : TRUTHS} secs={sessSecs} label={sessLabel} onClose={() => setMd(null)} onDone={onDone}/>
+      )}
+      {modal === "vis" && <Visualize items={vizItems} onClose={() => setMd(null)}/>}
+      {modal === "journal" && (
+        <JournalSession
+          allItems={[...TRUTHS,...manifests.map(m=>m.text)]}
+          onClose={() => setMd(null)}
+          onDone={async () => {
+            const n = journalCount+1; setJC(n);
+            try { await window.storage.set("JC", String(n)); } catch(e) {}
+          }}
+        />
+      )}
+      {modal === "mantraPick" && (
+        <MantraPicker allItems={[...TRUTHS,...manifests.map(m=>m.text)]} onStart={m=>{setMantra(m);setMd("mantra");}} onClose={()=>setMd(null)}/>
+      )}
+      {modal === "mantra" && (
+        <MantraMode mantra={mantra} onClose={()=>setMd(null)} onDone={onDone}/>
+      )}
+
+      {/* HERO */}
+      <div style={{position:"relative",zIndex:1,textAlign:"center",padding:"32px 20px 0",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:"-18%",left:"50%",transform:"translateX(-50%)",width:500,height:500,borderRadius:"50%",background:"radial-gradient(circle,rgba(255,255,255,.46) 0%,rgba(255,255,255,.07) 45%,transparent 70%)",pointerEvents:"none"}}/>
+        <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",marginBottom:10,animation:"floatY 4s ease-in-out infinite"}}>
+            <img
+              src="data:image/png;base64,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"
+              alt="eye am"
+              style={{
+                height: 80,
+                width: "auto",
+                objectFit: "contain",
+                display: "block",
+                filter: "drop-shadow(0 4px 20px rgba(0,80,160,.25))",
+              }}
+            />
+          </div>
+          <p className="pf" style={{fontStyle:"italic",fontSize:15,color:"rgba(0,50,76,.46)",margin:"0 0 6px",fontWeight:300}}>
+            See it &middot; Dream it &middot; Believe it &middot; Become it
+          </p>
+          {sess > 0 && (
+            <p className="cf" style={{fontSize:11,color:"rgba(0,90,140,.5)",letterSpacing:".14em",margin:0}}>
+              {sess} session{sess !== 1 ? "s" : ""} completed
+            </p>
+          )}
+        </div>
+        <div style={{marginTop:18}}><Wave/></div>
+      </div>
+
+      <div style={{position:"relative",zIndex:1,maxWidth:730,margin:"0 auto",padding:"16px 16px 80px"}}>
+
+        {/* NAV */}
+        <div style={{display:"flex",...glass,borderRadius:50,padding:4,marginBottom:22}}>
+          {[{id:"home",l:"My Practice"},{id:"journal",l:"Journal"},{id:"reprogram",l:"Reprogram"},{id:"add",l:"+ Add"},{id:"about",l:"About"}].map(tab => (
+            <button key={tab.id} className="tb cf" onClick={() => setV(tab.id)} style={{
+              flex:1, fontSize:14, letterSpacing:".04em", border:"none", borderRadius:46, padding:"9px 12px",
+              ...(view===tab.id ? {...ocean, fontWeight:600} : {background:"transparent", color:"rgba(0,50,76,.46)"}),
+            }}>
+              {tab.l}
+            </button>
+          ))}
+        </div>
+
+        {/* HOME */}
+        {view === "home" && (
+          <div style={{animation:"up .5s ease"}}>
+
+            {/* 10-min session */}
+            <button className="bo" onClick={() => setMd("s10")} style={{width:"100%",padding:"19px 22px",...ocean,borderRadius:18,cursor:"pointer",display:"flex",alignItems:"center",gap:14,textAlign:"left",marginBottom:10}}>
+              <div style={{fontSize:32}}>🌊</div>
+              <div style={{flex:1}}>
+                <p className="pf" style={{fontSize:17,fontStyle:"italic",margin:"0 0 2px",color:"#fff"}}>10-Minute Deep Session</p>
+                <p className="cf" style={{fontSize:13,color:"rgba(255,255,255,.65)",margin:0}}>Full immersive practice - morning or evening</p>
+              </div>
+              <span className="pf" style={{fontSize:20,color:"rgba(255,255,255,.6)"}}>10:00</span>
+            </button>
+
+            {/* Mantra meditation */}
+            <button className="bo" onClick={() => setMd("mantraPick")} style={{width:"100%",padding:"19px 22px",background:"linear-gradient(135deg,#012a4a 0%,#023E8A 100%)",border:"1.5px solid rgba(144,224,239,.35)",borderRadius:18,cursor:"pointer",display:"flex",alignItems:"center",gap:14,textAlign:"left",marginBottom:10,boxShadow:"0 8px 32px rgba(0,0,0,.25),inset 0 1px 0 rgba(144,224,239,.15)"}}>
+              <div style={{fontSize:32}}>🧘</div>
+              <div style={{flex:1}}>
+                <p className="pf" style={{fontSize:17,fontStyle:"italic",margin:"0 0 2px",color:"#fff"}}>Mantra Meditation</p>
+                <p className="cf" style={{fontSize:13,color:"rgba(144,224,239,.65)",margin:0}}>Choose one affirmation - repeat it completely</p>
+              </div>
+              <span className="pf" style={{fontSize:20,color:"rgba(144,224,239,.5)"}}>10:00</span>
+            </button>
+
+            {/* Journal */}
+            <button className="bo" onClick={() => setMd("journal")} style={{width:"100%",padding:"19px 22px",background:"linear-gradient(135deg,#012535 0%,#013A52 100%)",border:"1.5px solid rgba(0,180,216,.4)",borderRadius:18,cursor:"pointer",display:"flex",alignItems:"center",gap:14,textAlign:"left",marginBottom:10,boxShadow:"0 8px 28px rgba(0,0,0,.2),inset 0 1px 0 rgba(0,180,216,.15)"}}>
+              <div style={{fontSize:32}}>📓</div>
+              <div style={{flex:1}}>
+                <p className="pf" style={{fontSize:17,fontStyle:"italic",margin:"0 0 2px",color:"#fff"}}>10-Minute Journal</p>
+                <p className="cf" style={{fontSize:13,color:"rgba(144,224,239,.65)",margin:0}}>Write your affirmations 5x each — speak as you write</p>
+              </div>
+              <span className="pf" style={{fontSize:20,color:"rgba(144,224,239,.5)"}}>10:00</span>
+            </button>
+
+            {/* Quick sessions */}
+            <div style={{display:"flex",gap:9,marginBottom:10}}>
+              <button className="bo" onClick={() => setMd("s2")} style={{flex:1,padding:"13px 14px",...glass,borderRadius:14,cursor:"pointer",textAlign:"center",border:"1.5px solid rgba(0,140,190,.26)"}}>
+                <div style={{fontSize:22,marginBottom:4}}>⚡</div>
+                <p className="pf" style={{fontSize:14,fontStyle:"italic",color:"#0077B6",margin:"0 0 2px"}}>Quick Boost</p>
+                <p className="cf" style={{fontSize:11,color:"rgba(0,55,80,.42)",letterSpacing:".05em",textTransform:"uppercase",margin:"0 0 4px"}}>2 minutes</p>
+                <p className="cf" style={{fontSize:12,color:"rgba(0,50,76,.45)",lineHeight:1.5,margin:0}}>At your desk or on a break</p>
+              </button>
+              <button className="bo" onClick={() => setMd("s3")} style={{flex:1,padding:"13px 14px",...glass,borderRadius:14,cursor:"pointer",textAlign:"center",border:"1.5px solid rgba(0,140,190,.26)"}}>
+                <div style={{fontSize:22,marginBottom:4}}>🌬️</div>
+                <p className="pf" style={{fontSize:14,fontStyle:"italic",color:"#0077B6",margin:"0 0 2px"}}>Reset &amp; Recharge</p>
+                <p className="cf" style={{fontSize:11,color:"rgba(0,55,80,.42)",letterSpacing:".05em",textTransform:"uppercase",margin:"0 0 4px"}}>3 minutes</p>
+                <p className="cf" style={{fontSize:12,color:"rgba(0,50,76,.45)",lineHeight:1.5,margin:0}}>Mid-day recenter</p>
+              </button>
+            </div>
+
+            {manifests.length > 0 && (
+              <button className="bo" onClick={() => setMd("vis")} style={{width:"100%",padding:"13px 18px",...glass,borderRadius:12,cursor:"pointer",display:"flex",alignItems:"center",gap:11,border:"1.5px solid rgba(0,140,190,.2)",marginBottom:10}}>
+                <span style={{fontSize:20}}>✦</span>
+                <div style={{textAlign:"left"}}>
+                  <p className="pf" style={{fontSize:14,fontStyle:"italic",color:"#0077B6",margin:"0 0 2px"}}>Visualization Mode</p>
+                  <p className="cf" style={{fontSize:12,color:"rgba(0,50,76,.42)",margin:0}}>See your manifestations as already real</p>
+                </div>
+              </button>
+            )}
+
+            {/* Stats */}
+            <div style={{display:"flex",gap:8,marginBottom:22,marginTop:4}}>
+              {[{l:"Intentions",v:manifests.length,e:"🌟",c:"#C8880A"},{l:"Sessions",v:sess,e:"🔥",c:"#D06018"},{l:"Journals",v:journalCount,e:"📓",c:"#0087B8"}].map((s,i) => (
+                <div key={i} style={{flex:1,...glass,borderRadius:12,padding:"10px",textAlign:"center",border:`1px solid ${s.c}20`}}>
+                  <div style={{fontSize:14,marginBottom:2}}>{s.e}</div>
+                  <div className="pf" style={{fontSize:20,color:s.c}}>{s.v}</div>
+                  <div className="cf" style={{fontSize:9,color:"rgba(0,45,72,.38)",letterSpacing:".1em",textTransform:"uppercase"}}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* YOUR AFFIRMATIONS */}
+            <div style={{marginBottom:8}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                <div>
+                  <h2 className="pf" style={{fontSize:20,fontWeight:400,color:"#012535",margin:"0 0 2px"}}>Your Affirmations</h2>
+                  <p className="cf" style={{fontSize:13,color:"rgba(0,60,90,.48)",margin:0}}>
+                    {manifests.length === 0 ? "Tap Add New to plant your first intention" : "These play in every session automatically"}
+                  </p>
+                </div>
+                <button className="bo" onClick={() => setV("add")} style={{padding:"7px 16px",...ocean,borderRadius:20,fontFamily:"inherit",fontSize:13,letterSpacing:".06em",flexShrink:0,cursor:"pointer"}}>
+                  + Add
+                </button>
+              </div>
+
+              {manifests.length === 0 ? (
+                <div style={{...glass,borderRadius:16,padding:"30px 20px",textAlign:"center",border:"2px dashed rgba(0,140,190,.25)"}}>
+                  <div style={{fontSize:40,marginBottom:12,animation:"floatY 3s ease-in-out infinite"}}>🌊</div>
+                  <p className="pf" style={{fontSize:17,fontStyle:"italic",color:"rgba(0,55,80,.48)",margin:"0 0 6px"}}>Nothing here yet</p>
+                  <p className="cf" style={{fontSize:14,color:"rgba(0,55,80,.34)",margin:"0 0 16px",lineHeight:1.6}}>
+                    Tap Add New above to write your first affirmation. It will appear right here and play in every session.
+                  </p>
+                  <button className="bo" onClick={() => setV("add")} style={{padding:"9px 24px",...ocean,borderRadius:24,fontFamily:"inherit",fontSize:14,letterSpacing:".08em",cursor:"pointer"}}>
+                    Write My First Affirmation
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+                    {[{id:"all",label:"All",emoji:""},...CATS.filter(c => manifests.some(m => m.category === c.id))].map(c => (
+                      <button key={c.id} className="ch cf" onClick={() => setF(c.id)} style={{
+                        background:filter===c.id?"rgba(0,119,182,.13)":"transparent",
+                        border:`1px solid ${filter===c.id?"rgba(0,119,182,.42)":"rgba(0,100,150,.14)"}`,
+                        borderRadius:20, padding:"4px 12px",
+                        color:filter===c.id?"#0077B6":"rgba(0,50,76,.4)",
+                        fontSize:13, cursor:"pointer",
+                      }}>
+                        {c.emoji} {c.label || "All"}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:9}}>
+                    {filtered.map((item,i) => {
+                      const cat = CATS.find(c => c.id === item.category) || CATS[5];
+                      const isEditing = editMId === item.id;
+                      return (
+                        <div key={item.id} className="cd" style={{...glass,borderLeft:`4px solid ${cat.color}`,borderRadius:13,padding:"14px 16px",animation:`up .35s ease ${i*.05}s both`}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                            <span style={{fontSize:13}}>{cat.emoji}</span>
+                            <span className="cf" style={{fontSize:10,letterSpacing:".14em",color:cat.color,textTransform:"uppercase",flex:1}}>{cat.label}</span>
+                            {/* Edit button */}
+                            {!isEditing && (
+                              <button className="dl" onClick={() => { setEMId(item.id); setEMT(item.text); }} style={{background:"transparent",border:"none",color:"rgba(0,100,160,.35)",fontSize:14,padding:"2px 6px",cursor:"pointer",borderRadius:6,transition:"all .18s"}} title="Edit">
+                                ✏️
+                              </button>
+                            )}
+                            <button className="dl" onClick={() => delM(item.id)} style={{background:"transparent",border:"none",color:"rgba(0,50,80,.14)",fontSize:18,padding:"0 0 0 4px",flexShrink:0}}>&#x00D7;</button>
+                          </div>
+                          {isEditing ? (
+                            <div>
+                              <textarea value={editMTxt} onChange={e => setEMT(e.target.value)} rows={3}
+                                style={{width:"100%",background:"rgba(255,255,255,.8)",border:"1.5px solid #00B4D8",borderRadius:8,padding:"10px 12px",color:"#012535",fontSize:15,fontFamily:"'Playfair Display',serif",fontStyle:"italic",lineHeight:1.6,resize:"none",marginBottom:8}}
+                                autoFocus/>
+                              <div style={{display:"flex",gap:8}}>
+                                <button className="bo cf" onClick={() => saveEditM(item.id)} style={{flex:1,padding:"8px",...ocean,borderRadius:8,fontSize:13,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",cursor:"pointer"}}>
+                                  Save
+                                </button>
+                                <button className="bo cf" onClick={() => { setEMId(null); setEMT(""); }} style={{padding:"8px 16px",...glass,borderRadius:8,fontSize:13,color:"rgba(0,50,80,.55)",border:"1px solid rgba(0,100,150,.2)",cursor:"pointer"}}>
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="pf" style={{fontSize:15,fontStyle:"italic",color:"#012535",lineHeight:1.65,margin:0}}>{item.text}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* REPROGRAM */}
+        {view === "reprogram" && (
+          <div style={{animation:"up .5s ease"}}>
+            <div style={{...glass,borderRadius:20,padding:"26px 28px",marginBottom:14,textAlign:"center",borderTop:"3px solid #00B4D8"}}>
+              <p className="cf" style={{fontSize:10,letterSpacing:".32em",color:"rgba(0,90,140,.48)",textTransform:"uppercase",margin:"0 0 12px"}}>The Shift That Sets You Free</p>
+              <p className="pf" style={{fontSize:"clamp(14px,2.5vw,19px)",fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 14px"}}>
+                Unlock the door that keeps you from your dreams. Step forward into your future - see it, feel it, believe it. You are allowed to be it today.
+              </p>
+              <div style={{width:38,height:2,background:"rgba(0,119,182,.28)",margin:"0 auto",borderRadius:1}}/>
+            </div>
+
+            <button className="bo pf" onClick={() => setMd("s10")} style={{width:"100%",padding:"16px",...ocean,borderRadius:14,cursor:"pointer",fontSize:17,fontStyle:"italic",display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:8}}>
+              🌊 Begin 10-Min Reprogramming
+            </button>
+            <div style={{display:"flex",gap:8,marginBottom:22}}>
+              <button className="bo cf" onClick={() => setMd("s2")} style={{flex:1,padding:"10px",...glass,borderRadius:10,cursor:"pointer",color:"#0077B6",fontSize:14,border:"1.5px solid rgba(0,140,190,.24)"}}>⚡ 2-Min Boost</button>
+              <button className="bo cf" onClick={() => setMd("s3")} style={{flex:1,padding:"10px",...glass,borderRadius:10,cursor:"pointer",color:"#0077B6",fontSize:14,border:"1.5px solid rgba(0,140,190,.24)"}}>🌬️ 3-Min Reset</button>
+            </div>
+
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:11}}>
+              <h3 className="pf" style={{fontSize:17,fontWeight:400,color:"rgba(0,45,72,.6)",margin:0}}>Core Beliefs ({beliefs.length})</h3>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:18}}>
+              {beliefs.map((b,i) => {
+                const isEditing = editBIdx === i;
+                return (
+                  <div key={i} className="cd" style={{...glass,borderLeft:"4px solid #00B4D8",borderRadius:11,padding:"12px 14px",animation:`up .35s ease ${i*.03}s both`}}>
+                    <div style={{display:"flex",alignItems:"center",marginBottom:isEditing?8:6,gap:6}}>
+                      <span className="cf" style={{fontSize:9,letterSpacing:".2em",color:"#00B4D8",textTransform:"uppercase",flex:1}}>Core Belief</span>
+                      {!isEditing && (
+                        <button onClick={() => { setEBI(i); setEBT(b); }} style={{background:"transparent",border:"none",color:"rgba(0,100,160,.35)",fontSize:14,padding:"2px 6px",cursor:"pointer",borderRadius:6,transition:"all .18s"}} title="Edit">
+                          ✏️
+                        </button>
+                      )}
+                      <button className="dl" onClick={() => delB(i)} style={{background:"transparent",border:"none",color:"rgba(0,50,80,.13)",fontSize:17,padding:"0 0 0 4px",flexShrink:0}}>&#x00D7;</button>
+                    </div>
+                    {isEditing ? (
+                      <div>
+                        <textarea value={editBTxt} onChange={e => setEBT(e.target.value)} rows={3}
+                          style={{width:"100%",background:"rgba(255,255,255,.8)",border:"1.5px solid #00B4D8",borderRadius:8,padding:"10px 12px",color:"#012535",fontSize:14,fontFamily:"'Playfair Display',serif",fontStyle:"italic",lineHeight:1.6,resize:"none",marginBottom:8}}
+                          autoFocus/>
+                        <div style={{display:"flex",gap:8}}>
+                          <button className="bo cf" onClick={() => saveEditB(i)} style={{flex:1,padding:"8px",...ocean,borderRadius:8,fontSize:13,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",cursor:"pointer"}}>
+                            Save
+                          </button>
+                          <button className="bo cf" onClick={() => { setEBI(null); setEBT(""); }} style={{padding:"8px 16px",...glass,borderRadius:8,fontSize:13,color:"rgba(0,50,80,.55)",border:"1px solid rgba(0,100,150,.2)",cursor:"pointer"}}>
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="pf" style={{fontSize:14,fontStyle:"italic",color:"#012535",lineHeight:1.65,margin:0}}>{b}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{...glass,borderRadius:14,padding:"17px",border:"2px dashed rgba(0,140,190,.2)"}}>
+              <label className="cf" style={{display:"block",fontSize:11,letterSpacing:".2em",color:"rgba(0,55,80,.4)",textTransform:"uppercase",marginBottom:8}}>Add a New Core Belief</label>
+              <textarea value={newBel} onChange={e => setNB(e.target.value)}
+                placeholder="I am capable of achieving everything I set my mind to..."
+                rows={2} style={{width:"100%",background:"rgba(255,255,255,.65)",border:"1.5px solid rgba(0,140,190,.2)",borderRadius:8,padding:"10px 12px",color:"#012535",fontSize:15,fontFamily:"'Playfair Display',serif",fontStyle:"italic",lineHeight:1.6,resize:"none",transition:"all .2s"}}/>
+              <button className="bo cf" onClick={addB} style={{marginTop:8,padding:"9px 22px",...ocean,borderRadius:8,fontSize:14,fontWeight:600,letterSpacing:".1em",textTransform:"uppercase",cursor:"pointer"}}>
+                {flash === "b" ? "Added!" : "Add Belief"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ADD NEW */}
+        {/* ══ JOURNAL ══ */}
+        {view === "journal" && (
+          <div style={{animation:"up .5s ease"}}>
+
+            {/* Morning / Evening Ritual Banner */}
+            <div style={{background:"linear-gradient(135deg,#012535 0%,#013A52 50%,#023E8A 100%)",borderRadius:22,padding:"26px 24px",marginBottom:16,boxShadow:"0 8px 32px rgba(0,0,0,.25)",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:"-20%",right:"-10%",width:200,height:200,borderRadius:"50%",background:"radial-gradient(circle,rgba(0,180,216,.15) 0%,transparent 70%)",pointerEvents:"none"}}/>
+              <p className="cf" style={{fontSize:10,letterSpacing:".38em",color:"rgba(144,224,239,.6)",textTransform:"uppercase",margin:"0 0 10px"}}>Your Daily Ritual</p>
+              <p className="pf" style={{fontSize:"clamp(14px,3vw,19px)",fontStyle:"italic",color:"#fff",lineHeight:1.65,margin:"0 0 20px"}}>
+                30 minutes to transform your mind. Start your morning or wind down before sleep — three practices, one powerful ritual.
+              </p>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {[
+                  {emoji:"🌊",label:"10 Min Affirmations",desc:"Let each belief wash through you",modal:"s10"},
+                  {emoji:"🧘",label:"10 Min Meditation",desc:"One mantra. Breathe it completely",modal:"mantraPick"},
+                  {emoji:"📓",label:"10 Min Journaling",desc:"Write 5× each. Speak as you write",modal:"journal"},
+                ].map((step,i) => (
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:12,background:"rgba(255,255,255,.07)",borderRadius:12,padding:"12px 14px"}}>
+                    <div style={{fontSize:22,flexShrink:0}}>{step.emoji}</div>
+                    <div style={{flex:1}}>
+                      <p className="pf" style={{fontSize:14,fontStyle:"italic",color:"#fff",margin:"0 0 2px"}}>{step.label}</p>
+                      <p className="cf" style={{fontSize:11,color:"rgba(144,224,239,.6)",margin:0}}>{step.desc}</p>
+                    </div>
+                    <button className="bo cf" onClick={()=>setMd(step.modal)} style={{padding:"7px 14px",background:"linear-gradient(135deg,#0077B6,#00B4D8)",border:"none",borderRadius:8,color:"#fff",fontSize:12,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",cursor:"pointer",flexShrink:0}}>
+                      Begin
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Why Writing Works */}
+            <div style={{...glass,borderRadius:18,padding:"22px",marginBottom:14}}>
+              <p className="cf" style={{fontSize:10,letterSpacing:".3em",color:"rgba(0,100,150,.55)",textTransform:"uppercase",margin:"0 0 12px"}}>Why Writing Makes It Real</p>
+              <p className="pf" style={{fontSize:15,fontStyle:"italic",lineHeight:1.85,color:"#012535",margin:"0 0 12px"}}>
+                When you write an affirmation, your hand, your eyes, and your voice all work together. You are not just thinking it — you are <strong style={{fontStyle:"normal",color:"#0077B6"}}>embedding it</strong>. The pen moves, the mouth speaks, and the subconscious receives.
+              </p>
+              <p className="pf" style={{fontSize:15,fontStyle:"italic",lineHeight:1.85,color:"#012535",margin:0}}>
+                Five times is not repetition for its own sake. Each line goes deeper than the last. By the fifth, it is no longer a thought — it is a belief taking root.
+              </p>
+            </div>
+
+            {/* Big Start Button */}
+            <button className="bo" onClick={() => setMd("journal")} style={{width:"100%",padding:"17px",...ocean,borderRadius:16,cursor:"pointer",fontFamily:"'Playfair Display',serif",fontSize:17,fontStyle:"italic",display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:12,boxShadow:"0 8px 32px rgba(0,119,182,.35)"}}>
+              📓 Begin 10-Min Journal Session
+            </button>
+
+            {/* Journal count */}
+            {journalCount > 0 && (
+              <div style={{...glass,borderRadius:14,padding:"14px 18px",textAlign:"center",marginBottom:12}}>
+                <p className="cf" style={{fontSize:11,letterSpacing:".15em",color:"rgba(0,90,140,.5)",textTransform:"uppercase",margin:"0 0 4px"}}>Journal Practice</p>
+                <p className="pf" style={{fontSize:30,color:"#0077B6",margin:"0 0 2px",fontWeight:400}}>{journalCount}</p>
+                <p className="cf" style={{fontSize:12,color:"rgba(0,60,90,.45)",margin:0}}>session{journalCount!==1?"s":""} completed</p>
+              </div>
+            )}
+
+            {/* Closing Quote */}
+            <div style={{...glass,borderRadius:14,padding:"18px 20px",borderLeft:"4px solid #00B4D8"}}>
+              <p className="pf" style={{fontSize:15,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 10px"}}>
+                "What I find so empowering is reinforcing your thoughts and beliefs through writing. Just 10 minutes a day. Choose your affirmations, write them 5 times each — and say them aloud as you write. Again and again, until they become who you are."
+              </p>
+              <p className="cf" style={{fontSize:11,letterSpacing:".2em",color:"rgba(0,100,150,.5)",textTransform:"uppercase",margin:0}}>👁 am</p>
+            </div>
+
+          </div>
+        )}
+
+        {view === "add" && (
+          <div style={{animation:"up .5s ease"}}>
+            <div style={{...glass,borderRadius:20,padding:"26px"}}>
+              <h2 className="pf" style={{fontSize:23,fontWeight:400,margin:"0 0 4px",color:"#0077B6"}}>Write Your Affirmation</h2>
+              <p className="cf" style={{color:"rgba(0,50,76,.36)",fontSize:14,margin:"0 0 20px",lineHeight:1.7}}>
+                Write it in present tense as if it is already true. Once you tap Plant, it will appear on your Home screen and play in every session.
+              </p>
+
+              <label className="cf" style={{display:"block",fontSize:11,letterSpacing:".2em",color:"rgba(0,55,80,.38)",textTransform:"uppercase",marginBottom:8}}>Life Area</label>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:18}}>
+                {CATS.map(cat => (
+                  <button key={cat.id} className="ch cf" onClick={() => setNC(cat.id)} style={{
+                    background:newCat===cat.id?cat.color+"16":"rgba(255,255,255,.5)",
+                    border:`1.5px solid ${newCat===cat.id?cat.color:"rgba(0,100,150,.15)"}`,
+                    borderRadius:30, padding:"5px 13px", cursor:"pointer",
+                    color:newCat===cat.id?cat.color:"rgba(0,50,76,.42)", fontSize:14,
+                  }}>
+                    {cat.emoji} {cat.label}
+                  </button>
+                ))}
+              </div>
+
+              <label className="cf" style={{display:"block",fontSize:11,letterSpacing:".2em",color:"rgba(0,55,80,.38)",textTransform:"uppercase",marginBottom:6}}>Your Affirmation</label>
+              <p className="cf" style={{fontSize:13,color:"rgba(0,100,150,.42)",marginBottom:6,fontStyle:"italic"}}>Try starting with: {PROMPTS[pIdx]}</p>
+              <textarea value={newTxt} onChange={e => setNT(e.target.value)}
+                placeholder="e.g. I am living my dream life, full of abundance, love, and freedom..."
+                rows={4} style={{width:"100%",background:"rgba(255,255,255,.65)",border:"1.5px solid rgba(0,140,190,.2)",borderRadius:10,padding:"12px 14px",color:"#012535",fontSize:16,fontFamily:"'Playfair Display',serif",fontStyle:"italic",lineHeight:1.7,resize:"vertical",transition:"all .2s",marginBottom:14}}/>
+
+              <button className="bo cf" onClick={addM} style={{width:"100%",padding:"13px",...ocean,borderRadius:10,fontSize:15,fontWeight:600,letterSpacing:".12em",textTransform:"uppercase",cursor:"pointer"}}>
+                {flash === "m" ? "Planted! Check My Practice" : "Plant This Affirmation"}
+              </button>
+
+              <div style={{marginTop:13,padding:"12px 14px",background:"rgba(0,119,182,.06)",border:"1px solid rgba(0,119,182,.1)",borderRadius:9}}>
+                <p className="cf" style={{margin:0,fontSize:13,color:"rgba(0,50,76,.52)",lineHeight:1.8}}>
+                  After planting, tap My Practice in the menu above to see your affirmation listed under Your Affirmations. It will automatically play in all your sessions.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ══ ABOUT ══ */}
+        {view === "about" && (
+          <div style={{animation:"up .5s ease"}}>
+
+            {/* Hero quote */}
+            <div style={{...glass,borderRadius:22,padding:"32px 28px",marginBottom:18,textAlign:"center",borderTop:"4px solid #0096C7",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:"-30%",left:"50%",transform:"translateX(-50%)",width:340,height:340,borderRadius:"50%",background:"radial-gradient(circle,rgba(0,150,200,.1) 0%,transparent 70%)",pointerEvents:"none"}}/>
+              <p className="cf" style={{fontSize:10,letterSpacing:".4em",color:"rgba(0,100,150,.55)",textTransform:"uppercase",margin:"0 0 16px"}}>Our Foundation</p>
+              <p className="pf" style={{fontSize:"clamp(20px,4vw,30px)",fontStyle:"italic",lineHeight:1.7,color:"#012535",margin:"0 0 16px",fontWeight:400}}>
+                "Unlock the door that keeps you from your dreams. Step forward into your future. See it. Feel it. Believe it. You are allowed to be it today."
+              </p>
+              <div style={{width:50,height:2,background:"rgba(0,119,182,.3)",margin:"0 auto",borderRadius:1}}/>
+            </div>
+
+            {/* About body */}
+            <div style={{...glass,borderRadius:20,padding:"28px",marginBottom:16}}>
+              <p className="cf" style={{fontSize:11,letterSpacing:".3em",color:"rgba(0,100,150,.55)",textTransform:"uppercase",margin:"0 0 14px"}}>Our Philosophy</p>
+
+              {/* The Symbol */}
+              <div style={{background:"rgba(0,119,182,.07)",border:"1px solid rgba(0,119,182,.18)",borderRadius:16,padding:"22px",marginBottom:20}}>
+                <p className="cf" style={{fontSize:10,letterSpacing:".3em",color:"rgba(0,100,150,.55)",textTransform:"uppercase",margin:"0 0 14px"}}>The Name. The Symbol. The Meaning.</p>
+                <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 16px"}}>
+                  The name <strong style={{fontStyle:"normal",color:"#0077B6"}}>👁 am</strong> was not chosen — it was discovered. The Hamsa hand, with its all-seeing evil eye at its center, replaces the letter I in the words <em>I am</em>. So the logo itself becomes the declaration. The symbol IS the statement.
+                </p>
+                <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 16px"}}>
+                  When you see <strong style={{fontStyle:"normal",color:"#0077B6"}}>👁 am</strong>, you are reading three things at once:
+                </p>
+                <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
+                  {[
+                    {icon:"🛡️", title:"Protection", desc:"The evil eye is one of the oldest symbols of protection known to humanity. It wards off negativity, doubt, and the forces that try to keep you small. When you carry 👁 am, you carry that protection with you."},
+                    {icon:"👁️", title:"Seeing", desc:"To see your future clearly before it arrives. To visualize the life you are claiming. To look at yourself — truly look — and recognize the power, the worth, and the potential that was always there."},
+                    {icon:"✨", title:"Identity", desc:"The I in I am is not just a letter. It is a symbol of the whole self. Your beliefs, your story, your power — all of it contained in two words that are the most powerful declaration a human being can make."},
+                  ].map((item,i) => (
+                    <div key={i} style={{display:"flex",gap:14,alignItems:"flex-start"}}>
+                      <div style={{fontSize:22,flexShrink:0,marginTop:2}}>{item.icon}</div>
+                      <div>
+                        <p className="cf" style={{fontSize:11,letterSpacing:".2em",color:"#0077B6",textTransform:"uppercase",margin:"0 0 4px",fontWeight:600}}>{item.title}</p>
+                        <p className="pf" style={{fontSize:14,fontStyle:"italic",lineHeight:1.75,color:"#012535",margin:0}}>{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:0}}>
+                  This was not a marketing idea. It was a vision — a creative revelation that the symbol and the statement could be one and the same. <strong style={{fontStyle:"normal",color:"#0077B6"}}>The eye does not just see the world. It sees YOU — as you truly are, as you are becoming, as you already are.</strong>
+                </p>
+              </div>
+
+              <p className="cf" style={{fontSize:11,letterSpacing:".3em",color:"rgba(0,100,150,.55)",textTransform:"uppercase",margin:"0 0 14px"}}>About Us</p>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 18px"}}>
+                Before the dreams. Before the goals. Before the manifestations and the sessions and the affirmations — there is one thing that makes all of it possible. One thing that either opens every door or keeps them all closed.
+              </p>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 18px"}}>
+                <strong style={{fontStyle:"normal",color:"#0077B6"}}>The love you give to yourself.</strong>
+              </p>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 18px"}}>
+                Not the love the world tells you to earn. Not the love that comes after you lose the weight, get the promotion, or prove yourself worthy. The love you choose to give yourself right now — exactly as you are, exactly where you are. That is where everything begins.
+              </p>
+
+              <div style={{background:"rgba(0,119,182,.07)",border:"1px solid rgba(0,119,182,.18)",borderRadius:14,padding:"20px",marginBottom:18}}>
+                <p className="pf" style={{fontSize:15,fontStyle:"italic",lineHeight:2.1,color:"#012535",margin:0}}>
+                  Because if you tell yourself you can not — you won't.<br/>
+                  If you tell yourself you are not deserving — so be it.<br/>
+                  If you tell yourself you are not enough — you will carry yourself in a way that pushes away the very people and things you want most.<br/><br/>
+                  <strong style={{fontStyle:"normal",color:"#0077B6"}}>But the moment you choose to love yourself — everything shifts.</strong>
+                </p>
+              </div>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 18px"}}>
+                There is a door inside every one of us. Behind it lives the life we were born to live — the dreams we carry quietly, the goals that keep us awake at night, the version of ourselves we know we are capable of becoming. Self-love is the key that unlocks it. Not someday. Today.
+              </p>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 18px"}}>
+                <strong style={{fontStyle:"normal",color:"#0077B6"}}>👁 am</strong> was built on one unshakeable belief: that if you can see it, if you can dream it — you can beat it, you can do it, you can achieve it. But before any of that, you have to believe you are worth it. You have to decide — right now, in this moment — that you matter. That your dreams matter. That you deserve to walk through that door.
+              </p>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 18px"}}>
+                Self-love is not vanity. It is not selfishness. It is the most radical, courageous, transformative act you will ever commit. Because when you truly love yourself — you stop shrinking. You stop settling. You stop apologizing for taking up space in the world. You start showing up fully. You start attracting everything you deserve.
+              </p>
+
+              <div style={{background:"rgba(0,119,182,.07)",border:"1px solid rgba(0,119,182,.18)",borderRadius:14,padding:"20px",marginBottom:18}}>
+                <p className="pf" style={{fontSize:15,fontStyle:"italic",lineHeight:2,color:"#012535",margin:0}}>
+                  I am enough — right now, as I am.<br/>
+                  I am capable — of more than I have ever imagined.<br/>
+                  I am powerful — my mind shapes my reality.<br/>
+                  I am worthy — of love, abundance, and joy.<br/>
+                  I am successful — I choose that truth today.<br/>
+                  I am unstoppable — because I believe in myself.<br/>
+                  <strong style={{fontStyle:"normal",color:"#0077B6"}}>I am all of that — and I love every part of who I am.</strong>
+                </p>
+              </div>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 18px"}}>
+                There is no failure in life. There are only lessons — lessons that make you smarter, stronger, and more powerful. Every setback was preparing you. Every closed door was protecting you. When you love yourself enough to keep going, you discover that everything you went through was building the version of you that was always destined to thrive.
+              </p>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 18px"}}>
+                <strong style={{fontStyle:"normal",color:"#0077B6"}}>Shift your mindset. Shift your beliefs. Shift the direction of your life.</strong> But first — love yourself enough to believe that you deserve the shift. Love yourself enough to do the work. Love yourself enough to show up here, every single day, and speak those words into existence.
+              </p>
+
+              {/* The Change section */}
+              <div style={{background:"linear-gradient(135deg,rgba(0,119,182,.08),rgba(0,150,200,.04))",border:"1.5px solid rgba(0,119,182,.2)",borderRadius:16,padding:"22px",marginBottom:18}}>
+                <p className="cf" style={{fontSize:10,letterSpacing:".3em",color:"rgba(0,100,150,.55)",textTransform:"uppercase",margin:"0 0 14px"}}>The Truth About Change</p>
+                <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 14px"}}>
+                  Nothing changes until we change.
+                </p>
+                <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 14px"}}>
+                  Not the circumstances. Not the people around us. Not the opportunities in front of us. The change that transforms a life always starts from within — in our habits, our beliefs, our behaviors, and most powerfully, in how we choose to respond to the people and situations life places before us.
+                </p>
+                <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 14px"}}>
+                  Between what happens to us and how we respond — there is a space. And in that space lives our power.
+                </p>
+                <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 14px"}}>
+                  Take a deep breath. Give yourself a moment. Reflect. Understand. Then respond — not from fear, not from ego, not from old habits and old wounds — but from the highest, most grounded version of who you are becoming.
+                </p>
+                <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:0}}>
+                  That one breath is not weakness. That one pause is not hesitation. It is wisdom. It is self-mastery. It is the practice of choosing who you want to be — over and over again — until it becomes who you are.
+                </p>
+              </div>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 18px"}}>
+                New habits build new beliefs. New beliefs create new behaviors. New behaviors open new doors. This is the cycle of transformation — and it begins with a single decision: the decision to change. Not tomorrow. Not when life gets easier. Right now. With your next breath.
+              </p>
+
+              {/* Do It Now section */}
+              <div style={{background:"linear-gradient(135deg,rgba(0,119,182,.12),rgba(0,180,216,.06))",border:"2px solid rgba(0,119,182,.3)",borderRadius:18,padding:"24px",marginBottom:18,textAlign:"center"}}>
+                <p className="cf" style={{fontSize:10,letterSpacing:".4em",color:"rgba(0,100,150,.6)",textTransform:"uppercase",margin:"0 0 16px"}}>The Most Powerful Mantra</p>
+                <p className="pf" style={{fontSize:"clamp(28px,6vw,48px)",fontWeight:400,color:"#0077B6",margin:"0 0 8px",letterSpacing:".04em",lineHeight:1.2}}>
+                  Do it now.
+                </p>
+                <p className="pf" style={{fontSize:"clamp(22px,4vw,36px)",fontWeight:400,color:"rgba(0,119,182,.6)",margin:"0 0 20px",letterSpacing:".04em",lineHeight:1.2}}>
+                  Do it now. Do it now.
+                </p>
+                <div style={{width:40,height:2,background:"rgba(0,119,182,.3)",margin:"0 auto 20px",borderRadius:1}}/>
+                <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 14px"}}>
+                  Manifesting is not just believing. Manifesting is moving. The vision lives in your mind — but the life lives in your actions. Tomorrow is not your goal. Today is your goal. This moment is your goal.
+                </p>
+                <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 14px"}}>
+                  Every time you feel the pull to wait — to delay, to second-guess, to say "I will start Monday" — that is the moment to say it. Out loud. With conviction.
+                </p>
+                <p className="pf" style={{fontSize:"clamp(18px,3vw,26px)",fontWeight:400,color:"#0077B6",margin:"0 0 14px",lineHeight:1.5,fontStyle:"italic"}}>
+                  Do it now. Do it now. Do it now.
+                </p>
+                <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:0}}>
+                  Not perfectly. Not with all the answers. Not when fear has left the room — because fear never fully leaves. Do it now — afraid, imperfect, uncertain, and unstoppable. Because the person who acts today becomes the person who achieves tomorrow.
+                </p>
+              </div>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:0}}>
+                This app is your daily practice of self-love, self-mastery, and decisive action. Your sacred space. The place you come to remember who you truly are — not who fear told you to be. Come here to breathe. Come here to believe. Come here to rise. Then close this app, step forward, and do it now.
+              </p>
+            </div>
+
+            {/* Do It Now section */}
+            <div style={{background:"linear-gradient(135deg,#0077B6,#00B4D8)",borderRadius:20,padding:"26px 28px",marginBottom:16,textAlign:"center",boxShadow:"0 8px 32px rgba(0,119,182,.3)"}}>
+              <p className="cf" style={{fontSize:10,letterSpacing:".4em",color:"rgba(255,255,255,.65)",textTransform:"uppercase",margin:"0 0 10px"}}>Your Power Mantra</p>
+              <p className="pf" style={{fontSize:"clamp(26px,6vw,48px)",fontWeight:400,color:"#fff",margin:"0 0 6px",letterSpacing:".04em",textShadow:"0 2px 20px rgba(0,50,100,.3)"}}>
+                Do It Now.
+              </p>
+              <p className="pf" style={{fontSize:"clamp(18px,4vw,28px)",fontStyle:"italic",color:"rgba(255,255,255,.75)",margin:"0 0 16px"}}>
+                Do It Now. Do It Now.
+              </p>
+              <div style={{width:40,height:2,background:"rgba(255,255,255,.4)",margin:"0 auto 16px",borderRadius:1}}/>
+              <p className="cf" style={{fontSize:14,color:"rgba(255,255,255,.8)",lineHeight:1.8,maxWidth:480,margin:"0 auto"}}>
+                Tomorrow is not your goal. Today is. Right now is. Manifestation without action is just a dream. The moment you say it — move. Do it now.
+              </p>
+            </div>
+
+            {/* About Do It Now */}
+            <div style={{...glass,borderRadius:20,padding:"26px",marginBottom:16}}>
+              <p className="cf" style={{fontSize:10,letterSpacing:".3em",color:"rgba(0,100,150,.55)",textTransform:"uppercase",margin:"0 0 14px"}}>Manifestation Requires Action</p>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 16px"}}>
+                One of the most powerful truths about manifesting is this: <strong style={{fontStyle:"normal",color:"#0077B6"}}>you have to follow through.</strong> You have to act. You have to move — not someday, not tomorrow, not when the timing feels right. Now.
+              </p>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 16px"}}>
+                Every time you delay, you send a message to your subconscious that your dreams are not important enough to act on today. Every time you say "I'll start tomorrow," tomorrow never comes — because tomorrow always becomes today, and today always becomes another reason to wait.
+              </p>
+
+              <div style={{background:"rgba(0,119,182,.07)",border:"1px solid rgba(0,119,182,.18)",borderRadius:14,padding:"20px",marginBottom:16}}>
+                <p className="pf" style={{fontSize:18,fontStyle:"italic",lineHeight:2.1,color:"#012535",margin:0,textAlign:"center"}}>
+                  <strong style={{fontStyle:"normal",color:"#0077B6",fontSize:22}}>Do it now.</strong><br/>
+                  Do it now.<br/>
+                  Do it now.<br/><br/>
+                  <span style={{fontSize:14,color:"rgba(0,60,90,.6)"}}>Repeat it until your feet are already moving.</span>
+                </p>
+              </div>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 16px"}}>
+                Make things happen today. Not a plan to make things happen. Not a vision board for making things happen. <strong style={{fontStyle:"normal",color:"#0077B6"}}>Make them happen.</strong> One action. One step. One phone call. One word written. One conversation started. Right now.
+              </p>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:0}}>
+                The people who manifest the lives they dream of are not the ones who visualize the hardest. They are the ones who visualize — and then get up and do the work. Immediately. Consistently. Without waiting for permission or perfect conditions. They do it now, and they keep doing it now, every single day — until the dream becomes their reality.
+              </p>
+            </div>
+
+            {/* What Is Ahead section */}
+            <div style={{...glass,borderRadius:20,padding:"26px",marginBottom:16}}>
+              <p className="cf" style={{fontSize:10,letterSpacing:".3em",color:"rgba(0,100,150,.55)",textTransform:"uppercase",margin:"0 0 14px"}}>Look Forward</p>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 16px"}}>
+                Where you have been does not define where you are going. The past is behind you — and that is exactly where it belongs. What happened yesterday, last year, a decade ago — the struggles, the failures, the moments you wish you could take back — none of it determines what is possible for you today.
+              </p>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 16px"}}>
+                <strong style={{fontStyle:"normal",color:"#0077B6"}}>What matters is what is ahead of you.</strong> Where you are going. What you are building. The goals you are focused on. The version of yourself you are becoming with every single day that you show up and do the work.
+              </p>
+
+              <div style={{background:"rgba(0,119,182,.07)",border:"1px solid rgba(0,119,182,.18)",borderRadius:14,padding:"22px",marginBottom:16}}>
+                <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:2,color:"#012535",margin:0}}>
+                  Stop looking in the rear-view mirror.<br/>
+                  Your windshield is bigger for a reason.<br/>
+                  <strong style={{fontStyle:"normal",color:"#0077B6"}}>Everything you have ever wanted is straight ahead.</strong>
+                </p>
+              </div>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 16px"}}>
+                Focus is everything. Not scattered thinking. Not half-hearted effort. Not one foot in the past and one foot in the future. <strong style={{fontStyle:"normal",color:"#0077B6"}}>Laser focus on your goals.</strong> Know exactly what you want. Know exactly why you want it. And then pour every ounce of your energy into making it happen — today.
+              </p>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 16px"}}>
+                Because success is not somewhere off in the distance. It is not reserved for the lucky or the privileged or the ones who had it easier than you. Success is just ahead of you — one step away, one decision away, one action away. All you have to do is keep moving forward. Keep believing. Keep showing up.
+              </p>
+
+              <div style={{background:"linear-gradient(135deg,rgba(0,119,182,.12),rgba(0,180,216,.06))",border:"1.5px solid rgba(0,119,182,.25)",borderRadius:14,padding:"22px",textAlign:"center"}}>
+                <p className="pf" style={{fontSize:"clamp(17px,3.5vw,24px)",fontStyle:"italic",lineHeight:1.8,color:"#012535",margin:0}}>
+                  "The past is a lesson.<br/>
+                  The present is a gift.<br/>
+                  The future is yours to claim.<br/><br/>
+                  <strong style={{fontStyle:"normal",color:"#0077B6"}}>Do it now — because success is just ahead of you."</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* Look Forward section */}
+            <div style={{...glass,borderRadius:20,padding:"26px",marginBottom:16}}>
+              <p className="cf" style={{fontSize:10,letterSpacing:".3em",color:"rgba(0,100,150,.55)",textTransform:"uppercase",margin:"0 0 14px"}}>Look Forward</p>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 16px"}}>
+                Where you have been does not define where you are going. The past is behind you — and that is exactly where it belongs. Every struggle, every setback, every moment you wish had gone differently — none of it determines what is possible for you right now.
+              </p>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 16px"}}>
+                <strong style={{fontStyle:"normal",color:"#0077B6"}}>What matters is what is ahead of you.</strong> Where you are going. What you are building. The goals you are moving toward. The version of yourself you are becoming with every single day that you show up and choose to keep going.
+              </p>
+
+              <div style={{background:"rgba(0,119,182,.07)",border:"1px solid rgba(0,119,182,.18)",borderRadius:14,padding:"22px",marginBottom:16,textAlign:"center"}}>
+                <p className="pf" style={{fontSize:17,fontStyle:"italic",lineHeight:2.1,color:"#012535",margin:0}}>
+                  Stop looking in the rear-view mirror.<br/>
+                  Your windshield is bigger for a reason.<br/><br/>
+                  <strong style={{fontStyle:"normal",color:"#0077B6",fontSize:19}}>Everything you have ever wanted is straight ahead.</strong>
+                </p>
+              </div>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 16px"}}>
+                Focus is everything. Not scattered energy. Not one foot in the past and one foot in the future. <strong style={{fontStyle:"normal",color:"#0077B6"}}>Laser focus on your goals.</strong> Know exactly what you want. Know exactly why you want it. Then pour every ounce of who you are into making it happen — today, not tomorrow.
+              </p>
+
+              <p className="pf" style={{fontSize:16,fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:"0 0 16px"}}>
+                Because success is not somewhere off in the distance. It is not reserved for the lucky, the privileged, or the ones who had an easier road than you. Success is just ahead of you — one step away, one decision away, one action away. All you have to do is keep moving. Keep believing. Keep showing up. Keep doing it now.
+              </p>
+
+              <div style={{background:"linear-gradient(135deg,rgba(0,119,182,.12),rgba(0,180,216,.06))",border:"1.5px solid rgba(0,119,182,.25)",borderRadius:14,padding:"22px",textAlign:"center"}}>
+                <p className="pf" style={{fontSize:"clamp(16px,3vw,22px)",fontStyle:"italic",lineHeight:1.9,color:"#012535",margin:0}}>
+                  "The past is a lesson.<br/>
+                  The present is a gift.<br/>
+                  The future is yours to claim.<br/><br/>
+                  <strong style={{fontStyle:"normal",color:"#0077B6",fontSize:"clamp(17px,3.2vw,24px)"}}>Do it now — because success is just ahead of you."</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* Closing declaration */}
+            <div style={{...glass,borderRadius:18,padding:"24px",textAlign:"center",borderBottom:"4px solid #0096C7"}}>
+              <p className="cf" style={{fontSize:10,letterSpacing:".35em",color:"rgba(0,100,150,.5)",textTransform:"uppercase",margin:"0 0 14px"}}>The Declaration</p>
+              <p className="pf" style={{fontSize:"clamp(15px,3vw,22px)",fontStyle:"italic",lineHeight:1.85,color:"#012535",margin:"0 0 14px"}}>
+                "The most important love you will ever give<br/>
+                is the love you give to yourself.<br/>
+                From that love, everything grows —<br/>
+                the dreams, the courage, the life.<br/>
+                I believe in you. Now it is time<br/>
+                for you to believe in yourself.<br/>
+                The door is open. Step through it.<br/>
+                Do it now."
+              </p>
+              <div style={{width:40,height:2,background:"rgba(0,119,182,.3)",margin:"0 auto 14px",borderRadius:1}}/>
+              <p className="pf" style={{fontSize:18,fontWeight:400,color:"#0077B6",margin:0,letterSpacing:".05em"}}>
+                👁 am
+              </p>
+            </div>
+
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
